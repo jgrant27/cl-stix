@@ -1,4 +1,32 @@
 ;;
+;; Copyright (c) 2010, Justin Grant <justin at imagine27 dot com>
+;; All rights reserved.
+
+;; Redistribution and use in source and binary forms, with or without modification,
+;; are permitted provided that the following conditions are met:
+
+;; Redistributions of source code must retain the above copyright notice, this list
+;; of conditions and the following disclaimer.
+;; Redistributions in binary form must reproduce the above copyright notice, this
+;; list of conditions and the following disclaimer in the documentation and/or
+;; other materials provided with the distribution.
+;; Neither the name of the <ORGANIZATION> nor the names of its contributors may be
+;; used to endorse or promote products derived from this software without specific
+;; prior written permission.
+;;
+;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+;; ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+;; WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+;; DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+;; ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+;; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+;; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+;; THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+;; EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;
+
+;;
 ;; Stix - inspired by the old arcade classic.
 ;;
 
@@ -7,6 +35,7 @@
 (asdf:operate 'asdf:load-op :lispbuilder-sdl)
 (asdf:operate 'asdf:load-op :lispbuilder-sdl-gfx)
 (asdf:operate 'asdf:load-op :lispbuilder-sdl-mixer)
+;;(asdf:operate 'asdf:load-op :lispbuilder-sdl-ttf)
 
 
 ;; debug stuff
@@ -24,6 +53,11 @@
 #+my-game-debug
 (defparameter *music-path*          "/home/jgrant/cl-stix/qix_music.ogg")
 (defparameter *music*               nil)
+
+;; (defparameter *font-path*          "quacksal.tff")
+;; #+my-game-debug
+;; (defparameter *font-path*          "/home/jgrant/cl-stix/quacksal.ttf")
+;; (defparameter *font*               nil)
 
 (defparameter *game-surface*        nil)
 (defparameter *display-width*       320)
@@ -72,8 +106,38 @@
 
 (defun reset-game ()
   "Set scores to 0 etc."
-  (sdl:clear-display sdl:*black*)
-  (setf *p1* (make-player)))
+
+  (setf *p1* (make-player))
+
+  ;; init the game surface
+  (setf *game-surface* (sdl:create-surface *display-width* *display-height*
+                                           :x 0 :y 0))
+  ;; draw the border
+  (sdl:draw-rectangle-* *min-x* *min-y*
+                        (+ 1 *game-width*) (+ 1 *game-height*)
+                        :color *edge-color* :surface *game-surface*)
+
+  ;; draw game title
+  (sdl:initialise-default-font sdl:*font-10x20*)
+  ;;(setf *font* (sdl-ttf:open-font *font-path* 20))
+  (sdl:draw-string-solid-*
+   "STIX" 12 10 :color *edge-color* :surface *game-surface*)
+
+  ;; stop music
+  (when (sdl-mixer:music-playing-p)
+    (toggle-music)
+    (sdl-mixer:free *music*)
+    (sdl-mixer:close-audio))
+  ;; start music
+  (sdl-mixer:open-audio)
+  (setf (sdl-mixer:music-volume) 64)
+  (setf *music* (sdl-mixer:load-music *music-path*))
+  ;;(sdl-mixer:play-music *music* :loop t)
+
+  ;; clear game characters
+  (if sdl:*default-display*
+      (sdl:clear-display sdl:*black*)))
+
 
 (defun limit-val (min max val)
   (cond ((> val max) max)
@@ -141,28 +205,16 @@
 (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
   (sdl:show-cursor nil)
 
-  ;; Init the game surface
-  (setf *game-surface* (sdl:create-surface *display-width* *display-height*
-                                           :x 0 :y 0))
-  ;; draw the border
-  (sdl:draw-rectangle-* *min-x* *min-y*
-                        (+ 1 *game-width*) (+ 1 *game-height*)
-                        :color *edge-color* :surface *game-surface*)
-
   (sdl:window *display-width* *display-height*
               ;;:fullscreen t
               ;; :double-buffer t
-              :title-caption "- S T I X -"
+              :title-caption "STIX"
               :icon-caption "STIX"
               :resizable nil)
   (setf (sdl:frame-rate) 30)
   (sdl:enable-key-repeat nil nil)
 
-  ;; fire up the music !
-  (sdl-mixer:open-audio)
-  (setf (sdl-mixer:music-volume) 64)
-  (setf *music* (sdl-mixer:load-music *music-path*))
-  ;;(sdl-mixer:play-music *music* :loop t)
+  (reset-game)
 
   ;; game loop
   (sdl:with-events ()
@@ -198,3 +250,5 @@
            (draw-screen)
            ;; refresh
            (sdl:update-display))))
+
+
