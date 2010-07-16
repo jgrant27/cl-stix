@@ -19,25 +19,32 @@
 (in-package i27.games.stix)
 
 ;; Parameters
-(defparameter *display-height* 480)
-(defparameter *display-width*  640)
-(defparameter *game-border*     40)
-(defparameter *game-height*    (- *display-height* *game-border*))
-(defparameter *game-width*     (- *display-width*  *game-border*))
-(defparameter *min-y*          (/ (- *display-height* *game-height*) 2))
-(defparameter *min-x*          (/ (- *display-width*  *game-width*)  2))
-(defparameter *max-y*          (- *display-height* *min-y*))
-(defparameter *max-x*          (- *display-width*  *min-x*))
+(defparameter *game-surface*        nil)
+(defparameter *display-width*       320)
+(defparameter *display-height*      200)
+(defparameter *game-top-border*     30)
+(defparameter *game-border*         10)
+(defparameter *game-width*          (- *display-width*  (* 2 *game-border*)))
+(defparameter *game-height*         (- *display-height*
+                                       (+ *game-border* *game-top-border*)))
+(defparameter *min-x*               (/ (- *display-width*  *game-width*)  2))
+(defparameter *max-x*               (- *display-width*  *min-x*))
+(defparameter *min-y*               (- *display-height* *game-height* *game-border*))
+(defparameter *max-y*               (- *display-height* *game-border*))
+
+(defparameter *diamond-color*       (sdl:color :r 255 :g 160 :b 160))
+(defparameter *diamond-p-color*     (sdl:color :r 230 :g 230 :b 230))
+(defparameter *edge-color*          (sdl:color :r 200 :g 200 :b 200))
 
 ;; game structs
 (defstruct player
   (y *max-y*)
   (x *min-x*)
-  (xp)
-  (yp)
+  (yp *max-y*)
+  (xp *min-x*)
   (size 3)
   (dir)
-  (speed 2))
+  (speed 1))
 
 ;; vars
 (defparameter *p1* (make-player))
@@ -45,80 +52,101 @@
 ;; funs
 (defun reset-game ()
   "Set scores to 0 etc."
+  (sdl:clear-display sdl:*black*)
   (setf *p1* (make-player)))
 
 (defun limit-val (min max val)
   (cond ((> val max)
-         #+my-game-debug
-         (format t "~%max val: ~A" val)
+         ;; #+my-game-debug
+         ;; (format t "~%max val: ~A" val)
          max)
         ((< val min)
-         #+my-game-debug
-         (format t "~%min val: ~A" val)
+         ;; #+my-game-debug
+         ;; (format t "~%min val: ~A" val)
          min)
         (t val)))
 
 (defun update-player (key)
   (let ((py (player-y *p1*))
-        (px (player-x *p1*)))
+        (px (player-x *p1*))
+        (ps (player-speed *p1*)))
     (setf (player-yp *p1*) (player-y *p1*))
     (setf (player-xp *p1*) (player-x *p1*))
     (cond ((sdl:key= key :sdl-key-down)
-           (setf (player-y *p1*)
-                 (limit-val *min-y* *max-y* (+ py (player-speed *p1*)))))
+           (setf (player-y *p1*) (limit-val *min-y* *max-y* (+ py ps)))
+           (setf (player-dir *p1*) :down))
           ((sdl:key= key :sdl-key-up)
-           (setf (player-y *p1*)
-                 (limit-val *min-y* *max-y* (- py (player-speed *p1*)))))
+           (setf (player-y *p1*) (limit-val *min-y* *max-y* (- py ps)))
+           (setf (player-dir *p1*) :up))
           ((sdl:key= key :sdl-key-left)
-           (setf (player-x *p1*)
-                 (limit-val *min-x* *max-x* (- px (player-speed *p1*)))))
+           (setf (player-x *p1*) (limit-val *min-x* *max-x* (- px ps)))
+           (setf (player-dir *p1*) :left))
           ((sdl:key= key :sdl-key-right)
-           (setf (player-x *p1*)
-                 (limit-val *min-x* *max-x* (+  px (player-speed *p1*)))))))
-  #+my-game-debug
-  (format t "~%player y:~A x:~A"
-          (player-y *p1*) (player-x *p1*)))
+           (setf (player-x *p1*) (limit-val *min-x* *max-x* (+  px ps)))
+           (setf (player-dir *p1*) :right))))
+  ;; #+my-game-debug
+  ;; (format t "~%player y:~A x:~A"
+  ;;         (player-y *p1*) (player-x *p1*))
+  )
 
-(defun clear-diamond(px py size)
-  ;; clear the previous position
-  (when (and (numberp px) (numberp py))
-    (sdl:draw-shape (list (sdl:point :x (- px size) :y py)
-                          (sdl:point :x px :y (- py size))
-                          (sdl:point :x (+ px size) :y py)
-                          (sdl:point :x px :y (+ py size))
-                          (sdl:point :x (- px size) :y py))
-                    :color sdl:*black* :style :solid)))
-
-(defun draw-diamond(px py size)
-  ;; draw the new position
-  (sdl:draw-shape (list (sdl:point :x (- px size) :y py)
-                        (sdl:point :x px :y (- py size))
-                        (sdl:point :x (+ px size) :y py)
-                        (sdl:point :x px :y (+ py size))
-                        (sdl:point :x (- px size) :y py))
-                  :color sdl:*white* :style :solid))
+(defun draw-diamond(x y size color1 color2)
+  (sdl:draw-pixel (sdl:point :x x :y y) :color color2)
+  (sdl:draw-shape (list (sdl:point :x (- x size) :y y)
+                        (sdl:point :x x :y (- y size))
+                        (sdl:point :x (+ x size) :y y)
+                        (sdl:point :x x :y (+ y size))
+                        (sdl:point :x (- x size) :y y))
+                  :color color1 :style :solid))
 
 (defun draw-screen ()
-  (let ((py (player-y *p1*))
-        (px (player-x *p1*))
-        (pyp (player-yp *p1*))
-        (pxp (player-xp *p1*))
-        (size (player-size *p1*)))
-    (clear-diamond pxp pyp size)
-    ;; draw the border
-    (sdl:draw-rectangle-* *min-x* *min-y* *game-width* *game-height*
-                          :color sdl:*blue*)
-    (draw-diamond px py size)
-    ;;(sdl:clear-display sdl:*black*)
-    ))
+  (let* ((py (player-y *p1*))   (px (player-x *p1*))
+         ;;(pyp (player-yp *p1*)) (pxp (player-xp *p1*))
+         (size (player-size *p1*))
+         (dir (player-dir *p1*))
+         (trail-y py)
+         (trail-x px))
+
+    ;; calculate where to draw trail
+    (cond ((eq dir :up)    (setf trail-y (+ py size 1)))
+          ((eq dir :down)  (setf trail-y (- py size 1)))
+          ((eq dir :left)  (setf trail-x (+ px size 1)))
+          ((eq dir :right) (setf trail-x (- px size 1))))
+    (sdl:draw-pixel-* px py :surface *game-surface* :color *edge-color*)
+
+    ;; redraw main display
+    (sdl:clear-display sdl:*black*)
+
+    ;; show the game surface in the main window
+    (sdl:blit-surface *game-surface* sdl:*default-display*)
+
+    ;; draw the player
+    (draw-diamond px py size *diamond-color* *diamond-p-color*)))
+
+(let ((currently-fullscreen? nil))
+  (defun toggle-fullscreen ()
+    (if currently-fullscreen?
+        (sdl:resize-window *display-width* *display-height* :hw t :resizable nil)
+        (sdl:resize-window *display-width* *display-height* :hw t :fullscreen t))
+    (setf currently-fullscreen? (if currently-fullscreen? nil t))))
 
 ;; Create the window
 (sdl:with-init (sdl:sdl-init-video)
+  (sdl:show-cursor nil)
+
+  ;; Init the game surface
+  (setf *game-surface* (sdl:create-surface *display-width* *display-height*
+                                           :x 0 :y 0))
+  ;; draw the border
+  (sdl:draw-rectangle-* *min-x* *min-y*
+                        (+ 1 *game-width*) (+ 1 *game-height*)
+                        :color *edge-color* :surface *game-surface*)
+
   (sdl:window *display-width* *display-height*
-              :bpp 16
+              ;;:fullscreen t
               ;; :double-buffer t
               :title-caption "- S T I X -"
-              :icon-caption "STIX")
+              :icon-caption "STIX"
+              :resizable nil)
   (setf (sdl:frame-rate) 30)
   (sdl:enable-key-repeat nil nil)
 
@@ -130,6 +158,8 @@
                      (cond ((or (sdl:key= key :sdl-key-down) (sdl:key= key :sdl-key-up)
                                 (sdl:key= key :sdl-key-left) (sdl:key= key :sdl-key-right))
                             (update-player key))
+                           ((sdl:key= key :sdl-key-f)
+                            (toggle-fullscreen))
                            ((sdl:key= key :sdl-key-escape)
                             (sdl:push-quit-event)
                             (reset-game))))
