@@ -6,6 +6,7 @@
 (require 'asdf)
 (asdf:operate 'asdf:load-op :lispbuilder-sdl)
 (asdf:operate 'asdf:load-op :lispbuilder-sdl-gfx)
+(asdf:operate 'asdf:load-op :lispbuilder-sdl-mixer)
 
 
 ;; debug stuff
@@ -19,6 +20,11 @@
 (in-package i27.games.stix)
 
 ;; Parameters
+(defparameter *music-path*          "qix_music.ogg")
+#+my-game-debug
+(defparameter *music-path*          "/home/jgrant/cl-stix/qix_music.ogg")
+(defparameter *music*               nil)
+
 (defparameter *game-surface*        nil)
 (defparameter *display-width*       320)
 (defparameter *display-height*      200)
@@ -33,7 +39,7 @@
 (defparameter *max-y*               (- *display-height* *game-border*))
 
 (defparameter *diamond-color*       (sdl:color :r 255 :g 160 :b 160))
-(defparameter *diamond-p-color*     (sdl:color :r 230 :g 230 :b 230))
+(defparameter *diamond-p-color*     (sdl:color :r 255 :g 190 :b 190))
 (defparameter *edge-color*          (sdl:color :r 200 :g 200 :b 200))
 
 ;; game structs
@@ -56,14 +62,8 @@
   (setf *p1* (make-player)))
 
 (defun limit-val (min max val)
-  (cond ((> val max)
-         ;; #+my-game-debug
-         ;; (format t "~%max val: ~A" val)
-         max)
-        ((< val min)
-         ;; #+my-game-debug
-         ;; (format t "~%min val: ~A" val)
-         min)
+  (cond ((> val max) max)
+        ((< val min) min)
         (t val)))
 
 (defun update-player (key)
@@ -129,8 +129,15 @@
         (sdl:resize-window *display-width* *display-height* :hw t :fullscreen t))
     (setf currently-fullscreen? (if currently-fullscreen? nil t))))
 
+(let ((currently-playing-music? nil))
+  (defun toggle-music ()
+    (if currently-playing-music?
+        (sdl-mixer:halt-music)
+        (sdl-mixer:play-music *music* :loop t))
+    (setf currently-playing-music? (if currently-playing-music? nil t))))
+
 ;; Create the window
-(sdl:with-init (sdl:sdl-init-video)
+(sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
   (sdl:show-cursor nil)
 
   ;; Init the game surface
@@ -150,16 +157,30 @@
   (setf (sdl:frame-rate) 30)
   (sdl:enable-key-repeat nil nil)
 
+  ;; fire up the music !
+  (sdl-mixer:open-audio)
+  (setf (sdl-mixer:music-volume) 64)
+  (setf *music* (sdl-mixer:load-music *music-path*))
+  ;;(sdl-mixer:play-music *music* :loop t)
+
   ;; game loop
   (sdl:with-events ()
-    (:quit-event () t)
+    (:quit-event ()
+                 (sdl-mixer:halt-music)
+                 (sdl-mixer:free *music*)
+                 (sdl-mixer:close-audio)
+                 t)
     ;; Control keys
     (:key-down-event (:key key)
-                     (cond ((or (sdl:key= key :sdl-key-down) (sdl:key= key :sdl-key-up)
-                                (sdl:key= key :sdl-key-left) (sdl:key= key :sdl-key-right))
+                     (cond ((or (sdl:key= key :sdl-key-down)
+                                (sdl:key= key :sdl-key-up)
+                                (sdl:key= key :sdl-key-left)
+                                (sdl:key= key :sdl-key-right))
                             (update-player key))
                            ((sdl:key= key :sdl-key-f)
                             (toggle-fullscreen))
+                           ((sdl:key= key :sdl-key-m)
+                            (toggle-music))
                            ((sdl:key= key :sdl-key-escape)
                             (sdl:push-quit-event)
                             (reset-game))))
