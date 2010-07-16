@@ -56,6 +56,20 @@
 (defparameter *p1* (make-player))
 
 ;; funs
+(let ((currently-fullscreen? nil))
+  (defun toggle-fullscreen ()
+    (if currently-fullscreen?
+        (sdl:resize-window *display-width* *display-height* :hw t :resizable nil)
+        (sdl:resize-window *display-width* *display-height* :hw t :fullscreen t))
+    (setf currently-fullscreen? (if currently-fullscreen? nil t))))
+
+(let ((currently-playing-music? nil))
+  (defun toggle-music ()
+    (if currently-playing-music?
+        (sdl-mixer:halt-music)
+        (sdl-mixer:play-music *music* :loop t))
+    (setf currently-playing-music? (if currently-playing-music? nil t))))
+
 (defun reset-game ()
   "Set scores to 0 etc."
   (sdl:clear-display sdl:*black*)
@@ -122,19 +136,6 @@
     ;; draw the player
     (draw-diamond px py size *diamond-color* *diamond-p-color*)))
 
-(let ((currently-fullscreen? nil))
-  (defun toggle-fullscreen ()
-    (if currently-fullscreen?
-        (sdl:resize-window *display-width* *display-height* :hw t :resizable nil)
-        (sdl:resize-window *display-width* *display-height* :hw t :fullscreen t))
-    (setf currently-fullscreen? (if currently-fullscreen? nil t))))
-
-(let ((currently-playing-music? nil))
-  (defun toggle-music ()
-    (if currently-playing-music?
-        (sdl-mixer:halt-music)
-        (sdl-mixer:play-music *music* :loop t))
-    (setf currently-playing-music? (if currently-playing-music? nil t))))
 
 ;; Create the window
 (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
