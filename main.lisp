@@ -38,20 +38,23 @@
 ;;(asdf:operate 'asdf:load-op :lispbuilder-sdl-ttf)
 
 
-;; debug stuff
+;; debug stuff : causes windows to freak out (but works on Linux)
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (when (find-package :swank)
+  (when (and (find-package :swank) (not (find-package :windows)))
     (pushnew :my-game-debug *features*)))
 
 
-(defpackage :i27.games.stix (:use :common-lisp ))
+(defpackage :i27.games.stix 
+  (:use :common-lisp ))
+  ;;(:export :main))
 
 (in-package i27.games.stix)
 
 ;; Parameters
-(defparameter *music-path*          "qix_music.ogg")
+(defparameter *title-music-path*     "audio/8_bit.xm")
+(defparameter *game-music-path*      "audio/qix_ed.mod")
 #+my-game-debug
-(defparameter *music-path*          "/home/jgrant/cl-stix/qix_music.ogg")
+(defparameter *music-path*          "/home/jgrant/cl-stix/audio/qix_ed.mod")
 (defparameter *music*               nil)
 
 ;; (defparameter *font-path*          "quacksal.tff")
@@ -131,7 +134,7 @@
   ;; start music
   (sdl-mixer:open-audio)
   (setf (sdl-mixer:music-volume) 64)
-  (setf *music* (sdl-mixer:load-music *music-path*))
+  (setf *music* (sdl-mixer:load-music *game-music-path*))
   ;;(sdl-mixer:play-music *music* :loop t)
 
   ;; clear game characters
@@ -201,6 +204,13 @@
     (draw-diamond px py size *diamond-color* *diamond-p-color*)))
 
 
+;; (defun main()
+
+;;  #+windows
+;;  (cffi:define-foreign-library sdl
+;;    (t (:default "SDL")))           ; Windows only, see below for portable version
+;;  (cffi:use-foreign-library sdl)
+
 ;; Create the window
 (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
   (sdl:show-cursor nil)
@@ -250,5 +260,7 @@
            (draw-screen)
            ;; refresh
            (sdl:update-display))))
+
+;;)
 
 
