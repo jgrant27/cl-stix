@@ -41,24 +41,27 @@
 ;; debug stuff : causes windows to freak out (but works on Linux)
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (when (and (find-package :swank) (not (find-package :windows)))
-    (pushnew :my-game-debug *features*)))
+    (pushnew :debug-game *features*)))
 
 
-(defpackage :i27.games.stix 
+(defpackage :i27.games.stix
   (:use :common-lisp ))
-  ;;(:export :main))
+;;(:export :main))
 
 (in-package i27.games.stix)
 
 ;; Parameters
-(defparameter *title-music-path*     "audio/8_bit.xm")
-(defparameter *game-music-path*      "audio/qix_ed.mod")
-#+my-game-debug
-(defparameter *music-path*          "/home/jgrant/cl-stix/audio/qix_ed.mod")
-(defparameter *music*               nil)
+(defparameter *title-music*         nil)
+(defparameter *game-music*          nil)
+(defparameter *title-music-path*    "audio/8_bit.xm")
+(defparameter *game-music-path*     "audio/qix_ed.mod")
+#+debug-game
+(progn
+  (defparameter *title-music-path*  "/home/jgrant/cl-stix/audio/8_bit.xm")
+  (defparameter *game-music-path*   "/home/jgrant/cl-stix/audio/qix_ed.mod"))
 
 ;; (defparameter *font-path*          "quacksal.tff")
-;; #+my-game-debug
+;; #+debug-game
 ;; (defparameter *font-path*          "/home/jgrant/cl-stix/quacksal.ttf")
 ;; (defparameter *font*               nil)
 
@@ -93,19 +96,36 @@
 (defparameter *p1* (make-player))
 
 ;; funs
+
+(defun init-audio()
+  (sdl-mixer:open-audio)
+  (setf (sdl-mixer:music-volume) 64)
+  (setf *game-music* (sdl-mixer:load-music *game-music-path*))
+  (setf *title-music* (sdl-mixer:load-music *title-music-path*)))
+
+(defun deinit-audio()
+  (sdl-mixer:free *title-music*)
+  (sdl-mixer:free *game-music*)
+  (sdl-mixer:close-audio t))
+
+(defun start-music()
+  (sdl-mixer:play-music *game-music* :loop t))
+
+(defun stop-music()
+  (sdl-mixer:halt-music)
+  (sdl-mixer:rewind-music))
+
+(defun toggle-music ()
+  (if (sdl-mixer:music-playing-p)
+      (stop-music)
+      (start-music)))
+
 (let ((currently-fullscreen? nil))
   (defun toggle-fullscreen ()
     (if currently-fullscreen?
         (sdl:resize-window *display-width* *display-height* :hw t :resizable nil)
         (sdl:resize-window *display-width* *display-height* :hw t :fullscreen t))
     (setf currently-fullscreen? (if currently-fullscreen? nil t))))
-
-(let ((currently-playing-music? nil))
-  (defun toggle-music ()
-    (if currently-playing-music?
-        (sdl-mixer:halt-music)
-        (sdl-mixer:play-music *music* :loop t))
-    (setf currently-playing-music? (if currently-playing-music? nil t))))
 
 (defun reset-game ()
   "Set scores to 0 etc."
@@ -126,16 +146,7 @@
   (sdl:draw-string-solid-*
    "STIX" 12 10 :color *edge-color* :surface *game-surface*)
 
-  ;; stop music
-  (when (sdl-mixer:music-playing-p)
-    (toggle-music)
-    (sdl-mixer:free *music*)
-    (sdl-mixer:close-audio))
-  ;; start music
-  (sdl-mixer:open-audio)
-  (setf (sdl-mixer:music-volume) 64)
-  (setf *music* (sdl-mixer:load-music *game-music-path*))
-  ;;(sdl-mixer:play-music *music* :loop t)
+  (stop-music)
 
   ;; clear game characters
   (if sdl:*default-display*
@@ -165,7 +176,7 @@
           ((sdl:key= key :sdl-key-right)
            (setf (player-x *p1*) (limit-val *min-x* *max-x* (+  px ps)))
            (setf (player-dir *p1*) :right))))
-  ;; #+my-game-debug
+  ;; #+debug-game
   ;; (format t "~%player y:~A x:~A"
   ;;         (player-y *p1*) (player-x *p1*))
   )
@@ -213,6 +224,8 @@
 
 ;; Create the window
 (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
+  (init-audio)
+
   (sdl:show-cursor nil)
 
   (sdl:window *display-width* *display-height*
@@ -229,11 +242,10 @@
   ;; game loop
   (sdl:with-events ()
     (:quit-event ()
-                 (sdl-mixer:halt-music)
-                 (sdl-mixer:free *music*)
-                 (sdl-mixer:close-audio)
+                 (deinit-audio)
                  t)
-    ;; Control keys
+
+    ;; control keys
     (:key-down-event (:key key)
                      (cond ((or (sdl:key= key :sdl-key-down)
                                 (sdl:key= key :sdl-key-up)
@@ -247,10 +259,10 @@
                            ((sdl:key= key :sdl-key-escape)
                             (sdl:push-quit-event)
                             (reset-game))))
-    ;; Where the action happens
+    ;; where the action happens
     (:idle ()
            ;; debug stuff (works in single thread)
-           #+my-game-debug
+           #+debug-game
            (let ((connection
                   (or swank::*emacs-connection* (swank::default-connection))))
              (when (and connection (not (eql swank:*communication-style* :spawn)))
