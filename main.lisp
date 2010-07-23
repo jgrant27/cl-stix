@@ -45,8 +45,8 @@
 
 
 (defpackage :i27.games.stix
-  (:use :common-lisp ))
-;;(:export :main))
+  (:use :common-lisp)
+  (:export :main))
 
 (in-package i27.games.stix)
 
@@ -217,10 +217,17 @@
 
 ;; (defun main()
 
-;;  #+windows
-;;  (cffi:define-foreign-library sdl
-;;    (t (:default "SDL")))           ; Windows only, see below for portable version
-;;  (cffi:use-foreign-library sdl)
+;;   (cffi:define-foreign-library sdl
+;;     (:darwin (:or (:framework "SDL")
+;;                   (:default "libSDL")))
+;;     (:windows "SDL.dll")
+;;     (:unix (:or "libSDL-1.2.so.0"
+;;                 "libSDL-1.2.so"
+;;                 "libSDL.so"
+;;                 "libSDL")))
+;;
+
+;;   (cffi:use-foreign-library sdl)
 
 ;; Create the window
 (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
@@ -273,6 +280,13 @@
            ;; refresh
            (sdl:update-display))))
 
-;;)
+;;  )
 
 
+(defun dump-image()
+  (load (compile-file "main"))
+  (let ((filename #+windows "main.exe" #-windows "main"))
+    #+clisp (saveinitmem filename :init-function #'i27.games.stix:main :executable t :norc t)
+    #+sbcl (sb-ext:save-lisp-and-die filename :toplevel #'i27.games.stix:main :executable t)
+    #+clozure (save-application
+               filename :toplevel-function #'i27.games.stix:main :prepend-kernel t)))
