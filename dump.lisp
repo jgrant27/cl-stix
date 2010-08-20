@@ -32,9 +32,11 @@
 
 ;; Binary generation
 
+(in-package :clix)
+
 (defun dump-image()
-  (load (compile-file "main"))
-  (let ((filename #+windows "main.exe" #-windows "main"))
+  (load (compile-file "game"))
+  (let ((filename #+windows "clix.exe" #-windows "clix"))
     #+clisp (saveinitmem filename :init-function #'clix:main :executable t :norc t)
     #+sbcl (sb-ext:save-lisp-and-die filename :toplevel #'clix:main :executable t)
     #+clozure (save-application
