@@ -32,17 +32,6 @@
 
 (in-package :clix)
 
-;;(export :main :clix)
-
-;; (require 'asdf)
-;; (asdf:operate 'asdf:load-op :lispbuilder-sdl)
-;; (asdf:operate 'asdf:load-op :lispbuilder-sdl-gfx)
-;; (asdf:operate 'asdf:load-op :lispbuilder-sdl-mixer)
-;; ;;(asdf:operate 'asdf:load-op :lispbuilder-sdl-ttf)
-
-
-
-
 ;;;; game functions
 
 ;; audio
@@ -187,7 +176,6 @@
                 "libSDL.so"
                 "libSDL")))
 
-
   (cffi:use-foreign-library sdl)
 
   ;; Create the window
@@ -239,8 +227,6 @@
              ;; draw stuff here
              (draw-screen)
              ;; refresh
-             (sdl:update-display))))
-
-  )
+             (sdl:update-display)))))
 
 

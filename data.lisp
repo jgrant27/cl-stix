@@ -37,14 +37,6 @@
   (when (and (find-package :swank) (not (find-package :windows)))
     (pushnew :debug-game *features*)))
 
-
-;;(defpackage :clix
-;;   (:use :common-lisp)
-;;   (:export :main))
-
-;; (in-package clix)
-
-
 ;; Parameters
 (defparameter *title-music*         nil)
 (defparameter *game-music*          nil)
@@ -63,10 +55,6 @@
 (defparameter *game-width*          (- *display-width*  (* 2 *game-border*)))
 (defparameter *game-height*         (- *display-height*
                                        (+ *game-border* *game-top-border*)))
-
-;; A list of points with neighbor points as nested list
-(defparameter *game-points*         nil)
-(defparameter *trail-points*        nil)
 (defparameter *min-x*               (/ (- *display-width*  *game-width*)  2))
 (defparameter *max-x*               (- *display-width*  *min-x*))
 (defparameter *min-y*               (- *display-height* *game-height* *game-border*))
@@ -74,6 +62,12 @@
 (defparameter *diamond-color*       (sdl:color :r 255 :g 160 :b 160))
 (defparameter *diamond-p-color*     (sdl:color :r 255 :g 190 :b 190))
 (defparameter *edge-color*          (sdl:color :r 200 :g 200 :b 200))
+
+(defparameter *game-points*         (list (list *min-x* *min-y*) (list *min-x* *max-y*)
+                                          (list *max-x* *max-y*) (list *max-x* *min-y*)
+                                          (list *min-x* *min-y*)))
+(defparameter *trail-points*        nil)
+
 
 ;; These are the left right point neighbor indices depending on the travel direction
 (defparameter *directions* (make-hash-table))
@@ -102,3 +96,9 @@
 ;; #+debug-game
 ;; (defparameter *font-path*          "/home/jgrant/cl-stix/quacksal.ttf")
 ;; (defparameter *font*               nil)
+
+;; #+debug-game
+(defparameter *test-points*
+  ;;'((0 0) (100 0) (0 100) (100 100) (0 50) (75 0) (75 50) (85 50) (85 0) (85 100) (100 50)))
+  ;;'((0 0) (0 100) (100 100) (100 0) (0 0) (50 0) (50 25) (75 25) (75 0)))
+  '((0 0) (0 100) (100 100) (100 0) (0 0) (50 100) (50 75) (75 75) (75 100)))

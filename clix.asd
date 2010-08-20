@@ -27,7 +27,7 @@
 ;;
 
 (require 'asdf)
- 
+
 (asdf:defsystem :clix
   :description "A game inspired by the old arcade classic : Qix."
   :author "Justin Grant"
@@ -36,12 +36,9 @@
   :depends-on (:lispbuilder-sdl-mixer 
                :lispbuilder-sdl-gfx 
                :lispbuilder-sdl)
-  :components ((:file "data") 
+  :components ((:file "package") 
+               (:file "data") 
                (:file "math")
                (:file "game")
                (:file "dump")))
-
-(defpackage :clix
-  (:use :cl)
-  (:export :main))
 

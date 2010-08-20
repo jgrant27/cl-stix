@@ -26,16 +26,12 @@
 ;; EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;
 
-;;
-;; Clix - inspired by the old arcade classic.
-;;
+(defpackage clix
+  (:use :common-lisp)
+  (:export :main))
 
-;; Binary generation
+;; (asdf:operate 'asdf:load-op :lispbuilder-sdl)
+;; (asdf:operate 'asdf:load-op :lispbuilder-sdl-gfx)
+;; (asdf:operate 'asdf:load-op :lispbuilder-sdl-mixer)
+;; ;;(asdf:operate 'asdf:load-op :lispbuilder-sdl-ttf)
 
-(defun dump-image()
-  (load (compile-file "main"))
-  (let ((filename #+windows "main.exe" #-windows "main"))
-    #+clisp (saveinitmem filename :init-function #'clix:main :executable t :norc t)
-    #+sbcl (sb-ext:save-lisp-and-die filename :toplevel #'clix:main :executable t)
-    #+clozure (save-application
-               filename :toplevel-function #'clix:main :prepend-kernel t)))
