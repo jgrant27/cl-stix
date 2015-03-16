@@ -1,0 +1,1 @@
+Heavily inspired by the old 1981 arcade game Qix : http://en.wikipedia.org/wiki/Qix
